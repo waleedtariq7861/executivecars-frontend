@@ -4,15 +4,15 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://executive-cars-backend.onrender.com/api/:path*"
+      "destination": "https://executivecars-backend-production.up.railway.app/api/:path*"
     },
     {
       "source": "/socket.io/:path*",
-      "destination": "https://executive-cars-backend.onrender.com/socket.io/:path*"
+      "destination": "https://executivecars-backend-production.up.railway.app/socket.io/:path*"
     },
     {
       "source": "/uploads/:path*",
-      "destination": "https://executive-cars-backend.onrender.com/uploads/:path*"
+      "destination": "https://executivecars-backend-production.up.railway.app/uploads/:path*"
     },
     {
       "source": "/(.*)",
