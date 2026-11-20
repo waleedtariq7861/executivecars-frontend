@@ -5,7 +5,8 @@ import ImageGallery from './ImageGallery.jsx'
 
 const photos = ['/a.jpg', '/b.jpg', '/c.jpg']
 const gallery = (images = photos, extra = null) => <ImageGallery images={images} alt="Honda Civic">{extra}</ImageGallery>
-const trackOf = () => screen.getByRole('group', { name: 'Photo gallery' })
+const galleryOf = () => screen.getByRole('group', { name: 'Photo gallery' })
+const trackOf = () => document.querySelector('[data-photo-track]')
 const withWidth = (track, width = 400) => Object.defineProperty(track, 'clientWidth', { configurable: true, value: width })
 
 afterEach(() => vi.useRealTimers())
@@ -14,12 +15,71 @@ describe('ImageGallery page gallery', () => {
   it('steps through the photos with the arrows and stops at both ends', () => {
     render(gallery())
     expect(screen.getByText('1 / 3')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Previous photo' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Previous photo' })).toHaveAttribute('aria-disabled', 'true')
     fireEvent.click(screen.getByRole('button', { name: 'Next photo' }))
     expect(screen.getByText('2 / 3')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Next photo' }))
     expect(screen.getByText('3 / 3')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Next photo' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Next photo' })).toHaveAttribute('aria-disabled', 'true')
+  })
+
+  it('keeps the arrow focusable at the end so keyboard focus is not dropped', () => {
+    render(gallery())
+    const nextButton = screen.getByRole('button', { name: 'Next photo' })
+    nextButton.focus()
+    fireEvent.click(nextButton)
+    fireEvent.click(nextButton)
+    expect(screen.getByText('3 / 3')).toBeInTheDocument()
+    expect(nextButton).not.toBeDisabled()
+    expect(nextButton).toHaveAttribute('aria-disabled', 'true')
+    expect(nextButton).toHaveFocus()
+  })
+
+  it('puts the arrows, the counter and what the page lays over the photo inside the labelled gallery', () => {
+    render(gallery(photos, <button type="button">Save car</button>))
+    const group = galleryOf()
+    expect(within(group).getByRole('button', { name: 'Next photo' })).toBeInTheDocument()
+    expect(within(group).getByText('1 / 3')).toBeInTheDocument()
+    expect(within(group).getByRole('button', { name: 'Save car' })).toBeInTheDocument()
+  })
+
+  it('jumps instead of sliding for people who asked for less motion', () => {
+    const original = window.matchMedia
+    window.matchMedia = query => ({ matches: /reduced-motion/.test(query), media: query, addEventListener() {}, removeEventListener() {} })
+    try {
+      render(gallery())
+      const track = withWidth(trackOf())
+      track.scrollTo = vi.fn()
+      fireEvent.click(screen.getByRole('button', { name: 'Next photo' }))
+      expect(track.scrollTo).not.toHaveBeenCalled()
+      expect(track.scrollLeft).toBe(400)
+    } finally {
+      window.matchMedia = original
+    }
+  })
+
+  it('realigns when the track itself changes width, for example when a scrollbar appears', () => {
+    const callbacks = []
+    vi.stubGlobal('ResizeObserver', class { constructor(callback) { callbacks.push(callback) } observe() {} disconnect() {} })
+    try {
+      render(gallery())
+      const track = withWidth(trackOf(), 400)
+      fireEvent.click(screen.getByRole('button', { name: 'Next photo' }))
+      withWidth(track, 300)
+      act(() => callbacks.forEach(callback => callback()))
+      expect(track.scrollLeft).toBe(300)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('ignores the arrow keys when a modifier key is held, so browser shortcuts keep their meaning', () => {
+    render(gallery())
+    const photo = screen.getByRole('button', { name: 'Open photo 1 of 3' })
+    fireEvent.keyDown(photo, { key: 'ArrowRight', altKey: true })
+    fireEvent.keyDown(photo, { key: 'ArrowRight', ctrlKey: true })
+    fireEvent.keyDown(photo, { key: 'ArrowRight', metaKey: true })
+    expect(screen.getByText('1 / 3')).toBeInTheDocument()
   })
 
   it('never leaves the range when the arrow is hammered', () => {
@@ -93,7 +153,7 @@ describe('ImageGallery page gallery', () => {
     rerender(gallery([]))
     rerender(gallery(['/x.jpg', '/y.jpg', '/z.jpg']))
     expect(screen.getByText('1 / 3')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Previous photo' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Previous photo' })).toHaveAttribute('aria-disabled', 'true')
     expect(screen.getByRole('button', { name: 'View image 1' })).toHaveAttribute('aria-current', 'true')
   })
 
@@ -199,5 +259,56 @@ describe('ImageGallery zoom view', () => {
   it('has nothing to open without photos', () => {
     render(gallery([]))
     expect(screen.queryByRole('button', { name: /Open photo/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('ImageGallery zoom view details', () => {
+  const openPhoto = number => fireEvent.click(screen.getByRole('button', { name: `Open photo ${number} of 3` }))
+  const viewer = () => screen.getByRole('dialog', { name: 'Photo viewer' })
+
+  it('ignores the arrow keys with a modifier held, for example Alt+Left which is the browser Back shortcut', () => {
+    render(gallery())
+    openPhoto(1)
+    fireEvent.keyDown(document, { key: 'ArrowRight', altKey: true })
+    fireEvent.keyDown(document, { key: 'ArrowRight', ctrlKey: true })
+    fireEvent.keyDown(document, { key: 'ArrowRight', metaKey: true })
+    expect(within(viewer()).getByText('1 / 3')).toBeInTheDocument()
+    fireEvent.keyDown(document, { key: 'ArrowRight' })
+    expect(within(viewer()).getByText('2 / 3')).toBeInTheDocument()
+  })
+
+  it('keeps the viewer arrow focusable at the end so keyboard focus is not dropped', () => {
+    render(gallery())
+    openPhoto(1)
+    const nextButton = within(viewer()).getByRole('button', { name: 'Next photo' })
+    nextButton.focus()
+    fireEvent.click(nextButton)
+    fireEvent.click(nextButton)
+    expect(nextButton).not.toBeDisabled()
+    expect(nextButton).toHaveAttribute('aria-disabled', 'true')
+    expect(nextButton).toHaveFocus()
+  })
+
+  it('opens already scrolled to the chosen photo', () => {
+    const original = Object.getOwnPropertyDescriptor(Element.prototype, 'clientWidth')
+    Object.defineProperty(Element.prototype, 'clientWidth', { configurable: true, get: () => 400 })
+    try {
+      render(gallery())
+      fireEvent.click(screen.getByRole('button', { name: 'View image 3' }))
+      openPhoto(3)
+      expect(viewer().querySelector('.snap-x').scrollLeft).toBe(800)
+    } finally {
+      if (original) Object.defineProperty(Element.prototype, 'clientWidth', original)
+      else delete Element.prototype.clientWidth
+    }
+  })
+
+  it('releases the page when it is removed while the viewer is open', () => {
+    const { unmount } = render(gallery())
+    openPhoto(1)
+    expect(document.body.style.overflow).toBe('hidden')
+    unmount()
+    expect(document.body.style.overflow).toBe('')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })

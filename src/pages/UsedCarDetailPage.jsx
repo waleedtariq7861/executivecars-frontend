@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   AlertTriangle, ArrowLeft, Calendar, CheckCircle2, ClipboardCheck, FileText, Fuel, Gauge, Heart,
@@ -48,8 +48,6 @@ export default function UsedCarDetailPage() {
     api.get('/products', { params: { make: car.make } }).then(response => { if (active) setSimilarCars((Array.isArray(response.data) ? response.data : []).filter(item => item._id !== car._id).slice(0, 3)) }).catch(() => { if (active) setSimilarCars([]) })
     return () => { active = false }
   }, [car])
-
-  const images = useMemo(() => car?.images?.filter(Boolean) || [], [car])
 
   if (loading) return <PageState><div className="text-center"><div className="w-10 h-10 border-4 border-blue-100 border-t-blue-700 rounded-full animate-spin mx-auto" /><p className="text-sm text-gray-500 mt-4">Loading car details…</p></div></PageState>
 
@@ -145,7 +143,7 @@ export default function UsedCarDetailPage() {
           <div className="grid lg:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
             <div className="space-y-6 min-w-0">
               <section className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-card">
-                <ImageGallery key={car._id} images={images} alt={`${car.make} ${car.model}`}>
+                <ImageGallery key={car._id} images={car.images} alt={`${car.make} ${car.model}`}>
                   <div className="absolute top-3 right-3 z-10 flex gap-2">
                     <button type="button" onClick={toggleSaved} disabled={savedCarsSyncing || saveSubmitting} aria-busy={saveSubmitting} className="w-10 h-10 rounded-full bg-white/95 shadow flex items-center justify-center disabled:opacity-60 disabled:cursor-wait" aria-label={saved ? 'Remove from saved cars' : 'Save car'}><Heart className={`w-4 h-4 ${saved ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} /></button>
                     <button type="button" onClick={share} className="w-10 h-10 rounded-full bg-white/95 shadow flex items-center justify-center" aria-label="Share listing"><Share2 className="w-4 h-4 text-gray-600" /></button>
