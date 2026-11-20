@@ -11,7 +11,7 @@ import { formatPKR } from '../../utils/format.js'
 import api from '../../api/api.js'
 import { hasInspectionReport } from '../../utils/inspectionReport.js'
 import { connectSocket } from '../../api/socket.js'
-import VehicleImage from '../../components/VehicleImage.jsx'
+import ImageGallery from '../../components/ImageGallery.jsx'
 import { ConfirmationDialog } from '../../components/ui/Overlays.jsx'
 import { bidValidationError, formatBidCount } from '../../utils/auction.js'
 import { digitsOnly } from '../../utils/inputValidation.js'
@@ -30,7 +30,6 @@ export default function AuctionCarDetailPage() {
   const [loadError, setLoadError] = useState('')
   const [currentBid, setCurrentBid] = useState(0)
   const [bidAmount, setBidAmount] = useState('')
-  const [activeImg, setActiveImg] = useState(0)
   const [bidHistory, setBidHistory] = useState([])
   const [totalBidders, setTotalBidders] = useState(0)
   const [bidSuccess, setBidSuccess] = useState(false)
@@ -233,21 +232,7 @@ export default function AuctionCarDetailPage() {
           <div className="lg:col-span-2 space-y-5">
             {/* Gallery */}
             <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-              <div className="relative aspect-[16/9] overflow-hidden">
-                <VehicleImage src={car.images?.[activeImg]} alt={`${car.make} ${car.model}`}
-                  className="w-full h-full object-cover transition-all duration-300" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-              </div>
-              {car.images?.length > 1 && (
-                <div className="flex gap-2 p-3 bg-gray-50">
-                  {car.images.map((img, i) => (
-                    <button key={i} onClick={() => setActiveImg(i)}
-                      className={`w-16 h-12 rounded-lg overflow-hidden border-2 transition-all ${activeImg === i ? 'border-blue-500 shadow-md' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                      <VehicleImage src={img} alt={`${car.make} ${car.model} view ${i + 1}`} className="w-full h-full object-cover" fallbackClassName="w-full h-full" />
-                    </button>
-                  ))}
-                </div>
-              )}
+              <ImageGallery key={car._id} images={car.images} alt={`${car.make} ${car.model}`} />
             </div>
 
             {/* Car title + specs */}
