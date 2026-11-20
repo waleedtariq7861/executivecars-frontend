@@ -2,8 +2,8 @@ import api from '../api/api.js'
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
 
-// Document links come from our own API (Cloudinary over HTTPS, or this server in development). Anything else, such as
-// a javascript: or data: address, is never navigated to.
+// Document links come from our own API and point at the API itself (https in production, http on localhost). Anything
+// else, such as a javascript: or data: address, is never navigated to.
 export const isSafeDocumentUrl = (value) => {
   if (typeof value !== 'string' || !value.trim()) return false
   try {
