@@ -13,6 +13,9 @@ vi.mock('../context/toastContext.js', () => ({ useToast: vi.fn() }))
 vi.mock('../components/Navbar.jsx', () => ({ default: () => <nav aria-label="Primary navigation" /> }))
 vi.mock('../components/Footer.jsx', () => ({ default: () => <footer /> }))
 vi.mock('../components/VehicleImage.jsx', () => ({ default: ({ alt }) => <div role="img" aria-label={alt} /> }))
+// The showroom contact details come from build-time settings; tests change them through this object.
+const site = vi.hoisted(() => ({ siteConfig: { email: '', phone: '', phoneLabel: '' } }))
+vi.mock('../config/site.js', () => site)
 
 const car = {
   _id: '5f1c0a9b8e7d6c5b4a392817', make: 'Toyota', model: 'Corolla', year: 2020, km: 45000,
@@ -76,6 +79,50 @@ describe('UsedCarDetailPage contact', () => {
     await screen.findByRole('heading', { name: /Toyota Corolla/ })
     expect(document.querySelectorAll('a[href^="mailto:"]').length).toBe(0)
     expect(screen.queryByText('Message showroom')).not.toBeInTheDocument()
+  })
+})
+
+describe('UsedCarDetailPage buying', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    site.siteConfig.email = ''
+    site.siteConfig.phone = ''
+    useToast.mockReturnValue({ showToast: vi.fn() })
+    useSavedCars.mockReturnValue({ savedIds: [], syncing: false, serverBacked: false, toggleSaved: vi.fn() })
+    api.get.mockImplementation(url => Promise.resolve({ data: url === '/products/5f1c0a9b8e7d6c5b4a392817' ? car : [] }))
+  })
+
+  it('no longer shows the safety reminder', async () => {
+    renderPage()
+    await screen.findByRole('heading', { name: /Toyota Corolla/ })
+    expect(screen.queryByText('Safety reminder')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Never send advance payment/)).not.toBeInTheDocument()
+  })
+
+  it('offers Buy now as a purchase enquiry to the showroom that names the car, its price and its page', async () => {
+    site.siteConfig.email = 'sales@example.test'
+    renderPage()
+    const buy = await screen.findByRole('link', { name: /Buy now/ })
+    const url = new URL(buy.getAttribute('href'))
+    expect(url.protocol).toBe('mailto:')
+    expect(url.pathname).toBe('sales@example.test')
+    expect(url.searchParams.get('subject')).toBe('Buy now: Toyota Corolla 2020')
+    const body = url.searchParams.get('body')
+    expect(body).toContain('Toyota Corolla 2020')
+    expect(body).toContain('/used-cars/5f1c0a9b8e7d6c5b4a392817')
+    expect(body).not.toContain('private')
+  })
+
+  it('falls back to calling the showroom when only a phone number is configured', async () => {
+    site.siteConfig.phone = '+923001234567'
+    renderPage()
+    expect(await screen.findByRole('link', { name: /Buy now/ })).toHaveAttribute('href', 'tel:+923001234567')
+  })
+
+  it('shows no Buy now when the showroom has no contact details at all', async () => {
+    renderPage()
+    await screen.findByRole('heading', { name: /Toyota Corolla/ })
+    expect(screen.queryByRole('link', { name: /Buy now/ })).not.toBeInTheDocument()
   })
 })
 

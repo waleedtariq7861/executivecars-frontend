@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   AlertTriangle, ArrowLeft, Calendar, CheckCircle2, ClipboardCheck, FileText, Fuel, Gauge, Heart,
-  Mail, MapPin, MessageSquare, Phone, Settings, Share2, ShieldCheck, Sparkles,
+  Mail, MapPin, MessageSquare, Phone, Settings, Share2, ShieldCheck, ShoppingCart, Sparkles,
 } from 'lucide-react'
 import Navbar from '../components/Navbar.jsx'
 import Footer from '../components/Footer.jsx'
@@ -59,6 +59,12 @@ export default function UsedCarDetailPage() {
 
   const engine = String(car.engine || '').toLowerCase().includes('cc') ? car.engine : car.engine ? `${car.engine} cc` : '—'
   const contactEmail = siteConfig.email
+  // There is no online checkout: Buy now starts a purchase enquiry with the showroom (e-mail, else a call).
+  const carTitle = `${car.make} ${car.model} ${car.year}`
+  const buyMessage = `Hello, I would like to buy the ${carTitle} listed at ${formatPKR(car.price)}.\n\n${window.location.origin}/used-cars/${car._id}`
+  const buyHref = contactEmail
+    ? `mailto:${contactEmail}?subject=${encodeURIComponent(`Buy now: ${carTitle}`)}&body=${encodeURIComponent(buyMessage)}`
+    : siteConfig.phone ? `tel:${siteConfig.phone}` : null
   const verified = car.verificationStatus === 'verified'
   const hasReport = hasInspectionReport(car)
   const saved = savedIds.includes(id)
@@ -185,6 +191,7 @@ export default function UsedCarDetailPage() {
                 <div className="flex items-center gap-3 pb-4 border-b border-gray-100"><div className="w-11 h-11 bg-blue-800 rounded-full flex items-center justify-center text-white font-black">EC</div><div><p className="font-bold text-gray-900">Executive Cars</p><p className="text-xs text-gray-500 mt-0.5">Marketplace contact</p></div></div>
                 <p className="text-sm text-gray-500 leading-6 my-4">Ask about availability, the inspection report, or book a showroom viewing.</p>
                 <div className="space-y-2.5">
+                  {buyHref && <a href={buyHref} className="btn-brand w-full py-3 text-sm gap-2"><ShoppingCart className="w-4 h-4" /> Buy now</a>}
                   {siteConfig.phone && <a href={`tel:${siteConfig.phone}`} className="btn-primary w-full py-3 text-sm gap-2"><Phone className="w-4 h-4" /> Call {siteConfig.phoneLabel || siteConfig.phone}</a>}
                   {contactEmail && <a href={`mailto:${contactEmail}?subject=${encodeURIComponent(`${car.make} ${car.model} ${car.year} enquiry`)}`} className="btn-brand w-full py-3 text-sm gap-2"><MessageSquare className="w-4 h-4" /> Message showroom</a>}
                 </div>
@@ -199,8 +206,6 @@ export default function UsedCarDetailPage() {
                 <p className="text-xs text-gray-500 leading-5 mt-2">{hasReport ? 'A private report file is attached to this listing.' : 'No inspection report is attached to this listing.'}</p>
                 {hasReport ? <button type="button" onClick={viewReport} disabled={reportOpening} className="btn-ghost w-full py-2.5 text-xs mt-4 disabled:opacity-60">{reportOpening ? 'Opening…' : 'View report'}</button> : (contactEmail ? <a href={`mailto:${contactEmail}?subject=Inspection report enquiry`} className="btn-ghost w-full py-2.5 text-xs mt-4">Ask about inspection</a> : null)}
               </div>
-
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4"><div className="flex gap-3"><AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" /><div><p className="text-sm font-bold text-amber-900">Safety reminder</p><p className="text-xs text-amber-800/75 leading-5 mt-1">Never send advance payment before inspecting the car and verifying its documents.</p></div></div></div>
             </aside>
           </div>
         </main>
