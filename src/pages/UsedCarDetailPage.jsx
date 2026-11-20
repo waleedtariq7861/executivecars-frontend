@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   AlertTriangle, ArrowLeft, Calendar, CheckCircle2, ClipboardCheck, FileText, Fuel, Gauge, Heart,
@@ -9,7 +9,7 @@ import Footer from '../components/Footer.jsx'
 import { formatPKR } from '../utils/format.js'
 import api from '../api/api.js'
 import { siteConfig } from '../config/site.js'
-import VehicleImage from '../components/VehicleImage.jsx'
+import ImageGallery from '../components/ImageGallery.jsx'
 import VehicleCard from '../components/VehicleCard.jsx'
 import { useToast } from '../context/toastContext.js'
 import { useSavedCars } from '../hooks/useSavedCars.js'
@@ -27,7 +27,6 @@ export default function UsedCarDetailPage() {
   } = useSavedCars()
   const [car, setCar] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [activeImg, setActiveImg] = useState(0)
   const [saveSubmitting, setSaveSubmitting] = useState(false)
   const [loadError, setLoadError] = useState('')
   const [similarCars, setSimilarCars] = useState([])
@@ -35,7 +34,6 @@ export default function UsedCarDetailPage() {
 
   useEffect(() => {
     let active = true
-    setActiveImg(0)
     setLoadError('')
     api.get(`/products/${id}`)
       .then(response => { if (active) setCar(response.data) })
@@ -50,8 +48,6 @@ export default function UsedCarDetailPage() {
     api.get('/products', { params: { make: car.make } }).then(response => { if (active) setSimilarCars((Array.isArray(response.data) ? response.data : []).filter(item => item._id !== car._id).slice(0, 3)) }).catch(() => { if (active) setSimilarCars([]) })
     return () => { active = false }
   }, [car])
-
-  const images = useMemo(() => car?.images?.filter(Boolean) || [], [car])
 
   if (loading) return <PageState><div className="text-center"><div className="w-10 h-10 border-4 border-blue-100 border-t-blue-700 rounded-full animate-spin mx-auto" /><p className="text-sm text-gray-500 mt-4">Loading car details…</p></div></PageState>
 
@@ -147,14 +143,12 @@ export default function UsedCarDetailPage() {
           <div className="grid lg:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
             <div className="space-y-6 min-w-0">
               <section className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-card">
-                <div className="relative aspect-[16/9] bg-gray-100 overflow-hidden">
-                  <VehicleImage src={images[activeImg]} alt={`${car.make} ${car.model} view ${activeImg + 1}`} className="w-full h-full object-cover" fallbackClassName="w-full h-full" />
-                  <div className="absolute top-3 right-3 flex gap-2">
+                <ImageGallery key={car._id} images={car.images} alt={`${car.make} ${car.model}`}>
+                  <div className="absolute top-3 right-3 z-10 flex gap-2">
                     <button type="button" onClick={toggleSaved} disabled={savedCarsSyncing || saveSubmitting} aria-busy={saveSubmitting} className="w-10 h-10 rounded-full bg-white/95 shadow flex items-center justify-center disabled:opacity-60 disabled:cursor-wait" aria-label={saved ? 'Remove from saved cars' : 'Save car'}><Heart className={`w-4 h-4 ${saved ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} /></button>
                     <button type="button" onClick={share} className="w-10 h-10 rounded-full bg-white/95 shadow flex items-center justify-center" aria-label="Share listing"><Share2 className="w-4 h-4 text-gray-600" /></button>
                   </div>
-                </div>
-                {images.length > 1 && <div className="flex gap-2 p-3 overflow-x-auto">{images.map((image, index) => <button type="button" key={image} onClick={() => setActiveImg(index)} aria-label={`View image ${index + 1}`} className={`w-20 h-14 rounded-md overflow-hidden border-2 shrink-0 ${activeImg === index ? 'border-blue-500' : 'border-transparent opacity-70 hover:opacity-100'}`}><VehicleImage src={image} alt="" className="w-full h-full object-cover" fallbackClassName="w-full h-full" /></button>)}</div>}
+                </ImageGallery>
               </section>
 
               <section className="bg-white border border-gray-200 rounded-xl p-5 sm:p-6 shadow-card">

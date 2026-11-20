@@ -78,3 +78,22 @@ describe('UsedCarDetailPage contact', () => {
     expect(screen.queryByText('Message showroom')).not.toBeInTheDocument()
   })
 })
+
+describe('UsedCarDetailPage photos', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    useToast.mockReturnValue({ showToast: vi.fn() })
+    useSavedCars.mockReturnValue({ savedIds: [], syncing: false, serverBacked: true, toggleSaved: vi.fn() })
+  })
+
+  it('shows the photos as a swipeable gallery that opens a full-screen view, with save and share still on the photo', async () => {
+    api.get.mockImplementation(url => Promise.resolve({ data: url === '/products/5f1c0a9b8e7d6c5b4a392817' ? { ...car, images: ['/a.jpg', '/b.jpg'] } : [] }))
+    renderPage()
+
+    expect(await screen.findByRole('group', { name: 'Photo gallery' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save car' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Share listing' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Open photo 1 of 2' }))
+    expect(screen.getByRole('dialog', { name: 'Photo viewer' })).toBeInTheDocument()
+  })
+})

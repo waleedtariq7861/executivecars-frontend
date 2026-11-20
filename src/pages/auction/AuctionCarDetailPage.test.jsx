@@ -43,6 +43,13 @@ describe('AuctionCarDetailPage follows the auction clock', () => {
     expect(screen.getByText('LIVE AUCTION')).toBeInTheDocument()
   })
 
+  it('shows the photos as a swipeable gallery that opens a full-screen view', async () => {
+    await renderDetail(car({ images: ['/a.jpg', '/b.jpg'], auctionStart: new Date(NOW - 60000).toISOString(), auctionEnd: new Date(NOW + 3600000).toISOString() }))
+    expect(screen.getByRole('group', { name: 'Photo gallery' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Open photo 1 of 2' }))
+    expect(screen.getByRole('dialog', { name: 'Photo viewer' })).toBeInTheDocument()
+  })
+
   it('closes bidding on screen when a running auction reaches its end time', async () => {
     await renderDetail(car({ auctionStart: new Date(NOW - 60000).toISOString(), auctionEnd: new Date(NOW + 2000).toISOString() }))
     expect(screen.getByLabelText(/your bid/i)).toBeInTheDocument()
